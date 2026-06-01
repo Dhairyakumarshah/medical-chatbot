@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical Chatbot</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wrapper {
+            display: flex;
+            gap: 16px;
+            width: 900px;
+            height: 600px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sidebar h3 {
+            font-size: 14px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .doc-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .doc-item.active {
+            background: #eff6ff;
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+
+        .doc-item span { font-size: 11px; color: #ef4444; cursor: pointer; }
+        .no-docs { font-size: 13px; color: #94a3b8; }
+
+        /* Main chat */
+        .container {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2563eb;
+            color: white;
+            padding: 16px 20px;
+        }
+
+        .header h1 { font-size: 20px; }
+        .header p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
+        .active-doc-banner {
+            background: #eff6ff;
+            border-bottom: 1px solid #bfdbfe;
+            padding: 8px 16px;
+            font-size: 13px;
+            color: #2563eb;
+            display: none;
+        }
+
+        .chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .user-message {
+            background: #2563eb;
+            color: white;
+            align-self: flex-end;
+        }
+
+        .bot-message {
+            background: #f1f5f9;
+            color: #1e293b;
+            align-self: flex-start;
+        }
+
+        .upload-area {
+            padding: 10px 16px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-area input { font-size: 13px; flex: 1; }
+        .upload-status { font-size: 12px; color: #16a34a; }
+
+        .input-area {
+            display: flex;
+            padding: 12px 16px;
+            border-top: 1px solid #e2e8f0;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input[type="text"]:focus { border-color: #2563eb; }
+
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h3>📄 Documents</h3>
+        <div id="docList">
+            <p class="no-docs">No documents uploaded yet</p>
+        </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Medical Chatbot</h1>
+            <p>RAG powered by LLaMA + ChromaDB</p>
+        </div>
+
+        <div class="active-doc-banner" id="activeBanner">
+            📄 Chatting with: <strong id="activeDocName"></strong>
+            <span style="margin-left:8px; cursor:pointer; color:#64748b;" onclick="clearFilter()">✕ Clear filter</span>
+        </div>
+
+        <div class="chat-box" id="chatBox">
+            <div class="message bot-message">
+                Hello! I am your medical assistant. Ask me any question or upload a PDF to chat with it.
+            </div>
+        </div>
+
+        <div class="upload-area">
+            <input type="file" id="fileInput" accept=".pdf" />
+            <button onclick="uploadFile()">Upload PDF</button>
+            <span class="upload-status" id="uploadStatus"></span>
+        </div>
+
+        <div class="input-area">
+            <input
+                type="text"
+                id="userInput"
+                placeholder="Ask a medical question..."
+                onkeypress="handleKey(event)"
+            />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let activeSource = null;
+
+    // Load documents on page load
+    window.onload = loadDocuments;
+
+    async function loadDocuments() {
+        const response = await fetch('/documents');
+        const data = await response.json();
+        const docList = document.getElementById('docList');
+
+        if (data.documents.length === 0) {
+            docList.innerHTML = '<p class="no-docs">No documents uploaded yet</p>';
+            return;
+        }
+
+        docList.innerHTML = '';
+        data.documents.forEach(doc => {
+            const div = document.createElement('div');
+            div.className = 'doc-item' + (activeSource === doc ? ' active' : '');
+            div.innerHTML = `
+                <span onclick="setFilter('${doc}')">${doc.substring(0, 18)}...</span>
+                <span onclick="deleteDoc('${doc}')">🗑️</span>
+            `;
+            docList.appendChild(div);
+        });
+    }
+
+    function setFilter(source) {
+        activeSource = source;
+        document.getElementById('activeBanner').style.display = 'block';
+        document.getElementById('activeDocName').textContent = source;
+        loadDocuments();
+    }
+
+    function clearFilter() {
+        activeSource = null;
+        document.getElementById('activeBanner').style.display = 'none';
+        loadDocuments();
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('userInput');
+        const message = input.value.trim();
+        if (!message) return;
+
+        addMessage(message, 'user');
+        input.value = '';
+        addMessage('Thinking...', 'bot', 'thinking');
+
+        const response = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message,
+                source_filter: activeSource
+            })
+        });
+
+        const data = await response.json();
+        document.getElementById('thinking').remove();
+        addMessage(data.response, 'bot');
+    }
+
+    function addMessage(text, sender, id='') {
+        const chatBox = document.getElementById('chatBox');
+        const div = document.createElement('div');
+        div.className = `message ${sender}-message`;
+        div.textContent = text;
+        if (id) div.id = id;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function handleKey(event) {
+        if (event.key === 'Enter') sendMessage();
+    }
+
+    async function uploadFile() {
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('uploadStatus');
+
+        if (!fileInput.files[0]) {
+            status.textContent = 'Please select a file';
+            return;
+        }
+
+        status.textContent = 'Uploading...';
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        status.textContent = data.message || data.error;
+        loadDocuments();
+    }
+
+    async function deleteDoc(source) {
+        await fetch('/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ source_name: source })
+        });
+
+        if (activeSource === source) clearFilter();
+        loadDocuments();
+    }
+</script>
+</body>
+</html>
