@@ -20,9 +20,12 @@ def chat():
     if not user_message:
         return jsonify({'error': 'No message provided'}), 400
 
-    response = bot.chat(user_message, source_filter=source_filter)
-    return jsonify({'response': response})
-
+    try:
+        response = bot.chat(user_message, source_filter=source_filter)
+        return jsonify({'response': response})
+    except Exception as e:
+        return jsonify({'response': f'Sorry, I encountered an error: {str(e)}. Please try again.'}), 200
+        
 @app.route('/upload', methods=['POST'])
 def upload():
     if 'file' not in request.files:
