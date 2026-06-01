@@ -8,7 +8,6 @@
   <style>
     :root {
       --yellow: #FFD700;
-      --yellow-light: #FFF5B0;
       --yellow-dark: #F5A800;
       --yellow-glow: rgba(255, 215, 0, 0.25);
       --dark: #0D0D0D;
@@ -20,6 +19,7 @@
       --text3: #505050;
       --radius: 16px;
       --radius-sm: 10px;
+      --sidebar-width: 300px;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -33,9 +33,10 @@
       overflow: hidden;
     }
 
+    /* ── Sidebar ── */
     .sidebar {
-      width: 300px;
-      min-width: 300px;
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
       background: var(--dark2);
       border-right: 1px solid var(--dark4);
       display: flex;
@@ -43,28 +44,70 @@
       padding: 24px 20px;
       gap: 6px;
       overflow-y: auto;
+      transition: transform 0.3s ease;
+      z-index: 100;
+    }
+
+    /* Mobile: sidebar hidden by default */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        top: 0; left: 0;
+        height: 100vh;
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+        box-shadow: 4px 0 24px rgba(0,0,0,0.6);
+      }
+
+      .overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        z-index: 99;
+      }
+
+      .overlay.visible { display: block; }
     }
 
     .logo-wrap {
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: space-between;
       margin-bottom: 24px;
     }
+
+    .logo-inner { display: flex; align-items: center; gap: 12px; }
 
     .logo-icon {
       width: 46px; height: 46px;
       background: var(--yellow);
       border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       font-size: 22px;
       box-shadow: 0 0 20px var(--yellow-glow);
     }
 
     .logo-text { font-size: 22px; font-weight: 800; }
     .logo-sub { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
+    .close-sidebar-btn {
+      display: none;
+      background: var(--dark3);
+      border: 1px solid var(--dark4);
+      border-radius: 8px;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 6px 10px;
+    }
+
+    @media (max-width: 768px) {
+      .close-sidebar-btn { display: flex; align-items: center; justify-content: center; }
+    }
 
     .section-label {
       font-size: 10px;
@@ -195,19 +238,38 @@
       text-align: center;
     }
 
-    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    /* ── Main ── */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 
     .chat-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 16px 28px;
+      padding: 14px 20px;
       border-bottom: 1px solid var(--dark4);
       background: var(--dark2);
       flex-shrink: 0;
+      gap: 12px;
     }
 
-    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+    /* Hamburger button — visible only on mobile */
+    .menu-btn {
+      display: none;
+      background: var(--dark3);
+      border: 1px solid var(--dark4);
+      border-radius: 8px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 6px 10px;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 768px) {
+      .menu-btn { display: flex; align-items: center; justify-content: center; }
+    }
 
     .online-dot {
       width: 10px; height: 10px;
@@ -215,6 +277,7 @@
       border-radius: 50%;
       box-shadow: 0 0 8px #4ade80;
       animation: pulse 2s infinite;
+      flex-shrink: 0;
     }
 
     @keyframes pulse {
@@ -222,8 +285,8 @@
       50% { opacity: 0.4; }
     }
 
-    .header-title { font-size: 15px; font-weight: 700; }
-    .header-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+    .header-title { font-size: 15px; font-weight: 700; white-space: nowrap; }
+    .header-sub { font-size: 11px; color: var(--text2); margin-top: 1px; white-space: nowrap; }
 
     .active-filter-badge {
       display: none;
@@ -236,6 +299,8 @@
       font-size: 12px;
       color: var(--yellow);
       font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
     .clear-filter {
@@ -251,7 +316,7 @@
     .messages {
       flex: 1;
       overflow-y: auto;
-      padding: 28px;
+      padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 20px;
@@ -263,7 +328,7 @@
 
     .message {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       animation: fadeUp 0.25s ease;
       max-width: 780px;
     }
@@ -277,10 +342,10 @@
     .message.bot { align-self: flex-start; }
 
     .avatar {
-      width: 38px; height: 38px;
-      border-radius: 12px;
+      width: 36px; height: 36px;
+      border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
+      font-size: 16px;
       flex-shrink: 0;
     }
 
@@ -288,10 +353,12 @@
     .user .avatar { background: var(--dark3); border: 1px solid var(--dark4); }
 
     .bubble {
-      padding: 14px 18px;
+      padding: 12px 16px;
       border-radius: 16px;
       font-size: 14px;
       line-height: 1.7;
+      max-width: calc(100vw - 120px);
+      word-break: break-word;
     }
 
     .bot .bubble {
@@ -307,13 +374,10 @@
       border-top-right-radius: 4px;
     }
 
-    .bubble p { margin-bottom: 8px; }
-    .bubble p:last-child { margin-bottom: 0; }
     .bubble strong { color: var(--yellow); }
     .user .bubble strong { color: var(--dark); }
 
     .msg-time { font-size: 10px; color: var(--text3); margin-top: 6px; }
-    .bot .msg-time { text-align: left; }
     .user .msg-time { text-align: right; }
 
     .typing { display: flex; gap: 5px; align-items: center; padding: 6px 0; }
@@ -334,16 +398,16 @@
 
     .welcome-hero {
       text-align: center;
-      padding: 40px 20px;
-      max-width: 500px;
+      padding: 32px 16px;
+      max-width: 480px;
       margin: auto;
       align-self: center;
     }
 
-    .welcome-icon { font-size: 56px; margin-bottom: 16px; filter: drop-shadow(0 0 20px var(--yellow-glow)); }
-    .welcome-title { font-size: 28px; font-weight: 800; margin-bottom: 10px; }
+    .welcome-icon { font-size: 48px; margin-bottom: 14px; filter: drop-shadow(0 0 20px var(--yellow-glow)); }
+    .welcome-title { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
     .welcome-title span { color: var(--yellow); }
-    .welcome-sub { font-size: 14px; color: var(--text2); line-height: 1.7; margin-bottom: 28px; }
+    .welcome-sub { font-size: 13px; color: var(--text2); line-height: 1.7; margin-bottom: 24px; }
 
     .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 
@@ -356,14 +420,15 @@
       font-family: inherit;
       font-size: 12px;
       font-weight: 500;
-      padding: 8px 16px;
+      padding: 7px 14px;
       transition: all 0.15s;
     }
 
     .suggestion-chip:hover { border-color: var(--yellow); color: var(--yellow); background: rgba(255,215,0,0.05); }
 
+    /* ── Input area ── */
     .input-area {
-      padding: 16px 28px 20px;
+      padding: 12px 16px 16px;
       border-top: 1px solid var(--dark4);
       background: var(--dark2);
     }
@@ -392,7 +457,7 @@
       font-family: inherit;
       font-size: 14px;
       line-height: 1.5;
-      max-height: 160px;
+      max-height: 120px;
       outline: none;
       resize: none;
     }
@@ -406,12 +471,12 @@
       color: var(--dark);
       cursor: pointer;
       flex-shrink: 0;
-      height: 38px;
-      width: 38px;
+      height: 36px;
+      width: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
+      font-size: 16px;
       transition: all 0.15s;
       box-shadow: 0 0 12px var(--yellow-glow);
     }
@@ -423,16 +488,16 @@
     .input-footer {
       display: flex;
       justify-content: space-between;
-      margin-top: 8px;
+      margin-top: 6px;
     }
 
-    .input-hint { font-size: 11px; color: var(--text3); }
-    .char-count { font-size: 11px; color: var(--text3); }
+    .input-hint { font-size: 10px; color: var(--text3); }
+    .char-count { font-size: 10px; color: var(--text3); }
 
     .toast {
       position: fixed;
       bottom: 24px;
-      right: 24px;
+      right: 16px;
       background: var(--dark2);
       border: 1px solid var(--dark4);
       border-radius: var(--radius-sm);
@@ -443,6 +508,7 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.5);
       animation: slideUp 0.2s ease;
       z-index: 1000;
+      max-width: calc(100vw - 32px);
     }
 
     .toast.success { border-color: #4ade80; color: #4ade80; }
@@ -456,13 +522,20 @@
 </head>
 <body>
 
-<aside class="sidebar">
+<!-- Overlay for mobile -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar" id="sidebar">
   <div class="logo-wrap">
-    <div class="logo-icon">🏥</div>
-    <div>
-      <div class="logo-text">MediBot</div>
-      <div class="logo-sub">AI Health Assistant</div>
+    <div class="logo-inner">
+      <div class="logo-icon">🏥</div>
+      <div>
+        <div class="logo-text">MediBot</div>
+        <div class="logo-sub">AI Health Assistant</div>
+      </div>
     </div>
+    <button class="close-sidebar-btn" onclick="closeSidebar()">✕</button>
   </div>
 
   <div class="stats-bar">
@@ -497,9 +570,11 @@
   </div>
 </aside>
 
+<!-- ── Main ── -->
 <main class="main">
   <header class="chat-header">
     <div class="header-left">
+      <button class="menu-btn" onclick="openSidebar()">☰</button>
       <div class="online-dot"></div>
       <div>
         <div class="header-title">Medical Assistant</div>
@@ -549,11 +624,23 @@
     document.getElementById('newChatBtn').addEventListener('click', resetChat);
   };
 
+  // ── Sidebar toggle ──
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('overlay').classList.add('visible');
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('visible');
+  }
+
+  // ── Textarea ──
   function setupTextarea() {
     const ta = document.getElementById('userInput');
     ta.addEventListener('input', () => {
       ta.style.height = 'auto';
-      ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+      ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
       document.getElementById('charCount').textContent = `${ta.value.length} / 2000`;
     });
     ta.addEventListener('keydown', e => {
@@ -561,6 +648,7 @@
     });
   }
 
+  // ── Send message ──
   async function sendMessage() {
     const input = document.getElementById('userInput');
     const message = input.value.trim();
@@ -651,6 +739,7 @@
   function removeTyping(id) { document.getElementById(id)?.remove(); }
   function hideWelcome() { document.getElementById('welcomeHero')?.remove(); }
 
+  // ── Upload ──
   function setupUpload() {
     const fileInput = document.getElementById('fileInput');
     const zone = document.getElementById('uploadZone');
@@ -713,7 +802,7 @@
         const name = document.createElement('div');
         name.className = 'doc-name';
         name.textContent = doc.length > 22 ? doc.substring(0, 22) + '...' : doc;
-        name.onclick = () => setFilter(doc);
+        name.onclick = () => { setFilter(doc); closeSidebar(); };
 
         if (activeSource === doc) {
           const badge = document.createElement('span');
