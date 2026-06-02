@@ -19,20 +19,25 @@ Rules you must always follow:
 """
 
     def chat(self, user_message):
+        # Add user message to history
         self.conversation_history.append({
             "role": "user",
             "content": user_message
         })
 
+        # Only keep last 6 messages to avoid token limit
+        recent_history = self.conversation_history[-6:]
+
         response = self.client.chat.completions.create(
             model=self.model,
             messages=[
                 {"role": "system", "content": self.system_prompt}
-            ] + self.conversation_history
+            ] + recent_history
         )
 
         assistant_message = response.choices[0].message.content
 
+        # Add reply to full history
         self.conversation_history.append({
             "role": "assistant",
             "content": assistant_message
